@@ -1,4 +1,4 @@
-import { Action, Context } from './spark'
+import { Action, Context } from '.'
 import { contextPayloadFunction } from './contextPayloadFunction'
 import { contextActionFunction } from './contextActionFunction'
 import { FiniteStateMachine } from './FiniteStateMachine'

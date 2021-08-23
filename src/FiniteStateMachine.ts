@@ -43,7 +43,7 @@ export class FiniteStateMachine<
       return
     }
 
-    const event = state[action.type]
+    const event = state![action.type]
     if (!event) {
       this.executeNextAction()
       return
@@ -67,8 +67,14 @@ export class FiniteStateMachine<
       if (event.catch) {
         for (const catchObject of event.catch) {
           if (err instanceof catchObject.error) {
+            if (this._stateMachineDescriptor.beforeTransition) {
+              await this._stateMachineDescriptor.beforeTransition(this._context, action, this)
+            }
             await catchObject.action(this.context, action.payload, this)
             this._context.state = catchObject.target
+            if (this._stateMachineDescriptor.afterTransition) {
+              await this._stateMachineDescriptor.afterTransition(this._context, action, this)
+            }
             found = true
             break
           }
