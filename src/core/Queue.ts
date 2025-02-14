@@ -1,5 +1,3 @@
-import { Action } from './Action'
-
 export class Queue<E> {
   private elements: E[] = []
 

@@ -1,8 +1,8 @@
-import { Action } from './Action'
-import { Queue } from './ActionQueue'
-import { Context } from './Context'
-import { StateMachineException } from './StateMachineException'
-import { StateMahchineDescriptor } from './StateMahchineDescriptor'
+import { Queue } from "./Queue"
+import { StateMachineDescriptor } from "./StateMachineDescriptor"
+import { StateMachineException } from "./StateMachineException"
+import { Action, Context } from "./Types"
+
 
 export class FiniteStateMachine<
   C extends Context<S>,
@@ -11,9 +11,9 @@ export class FiniteStateMachine<
 > {
   private _context: C
   private actionQueue: Queue<Action<E>> = new Queue()
-  private _stateMachineDescriptor: StateMahchineDescriptor<C, S, E>
+  private _stateMachineDescriptor: StateMachineDescriptor<C, S, E>
 
-  constructor(stateMachineDescriptor: StateMahchineDescriptor<C, S, E>, context: C) {
+  constructor(stateMachineDescriptor: StateMachineDescriptor<C, S, E>, context: C) {
     this._stateMachineDescriptor = stateMachineDescriptor
     this._context = context
 

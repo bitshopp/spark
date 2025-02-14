@@ -1,4 +1,6 @@
-import { Context, FiniteStateMachine, StateMachineException } from '.'
+import { FiniteStateMachine } from "./core/FiniteStateMachine"
+import { StateMachineException } from "./core/StateMachineException"
+import { Context } from "./core/Types"
 
 export enum EnumState {
   state1 = 'state1',
