@@ -20,4 +20,12 @@ export class Queue<E> {
   public length() {
     return this.elements.length
   }
+
+  public getElements(): E[] {
+    return [...this.elements];
+  }
+
+  public setElements(elements: E[]): void {
+    this.elements = [...elements];
+  }
 }

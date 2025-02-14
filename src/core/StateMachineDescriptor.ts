@@ -1,4 +1,3 @@
-
 import { FiniteStateMachine } from './FiniteStateMachine'
 import { StateMachineException } from './StateMachineException'
 import { Action, Context, StateAction, TransitionHook } from './Types'
@@ -17,7 +16,7 @@ export type StateMachineDescriptor<
   states: {
     [Key in S]?: {
       [Key in E]?: {
-        target: S
+        target: S;
         action: StateAction<C, FiniteStateMachine<C, S, E>>
         catch?: Array<{
           error: typeof StateMachineException;

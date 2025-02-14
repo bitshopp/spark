@@ -1,96 +1,133 @@
-import { Queue } from "./Queue"
-import { StateMachineDescriptor } from "./StateMachineDescriptor"
-import { StateMachineException } from "./StateMachineException"
-import { Action, Context } from "./Types"
-
-
+import { Queue } from "./Queue";
+import { StateMachineDescriptor } from "./StateMachineDescriptor";
+import { StateMachineException } from "./StateMachineException";
+import { Context } from "./Types";
 export class FiniteStateMachine<
   C extends Context<S>,
   S extends string | number,
   E extends string | number
 > {
-  private _context: C
-  private actionQueue: Queue<Action<E>> = new Queue()
-  private _stateMachineDescriptor: StateMachineDescriptor<C, S, E>
+  private _context: C;
+  private actionQueue: Queue<{ type: E; payload?: any }> = new Queue();
+  private _stateMachineDescriptor: StateMachineDescriptor<C, S, E>;
 
-  constructor(stateMachineDescriptor: StateMachineDescriptor<C, S, E>, context: C) {
-    this._stateMachineDescriptor = stateMachineDescriptor
-    this._context = context
-
-    if (!this._context.state) this._context.state = this._stateMachineDescriptor.initialState
+  constructor(
+    stateMachineDescriptor: StateMachineDescriptor<C, S, E>,
+    context: C
+  ) {
+    this._stateMachineDescriptor = stateMachineDescriptor;
+    this._context = context;
+    if (!this._context.state)
+      this._context.state = this._stateMachineDescriptor.initialState;
   }
 
   get context(): C {
-    return this._context
+    return this._context;
   }
 
   set context(context: C) {
-    this._context = context
+    this._context = context;
   }
 
-  public async dispatch(action: Action<E>) {
-    this.actionQueue.enqueue(action)
-
-    if (this.actionQueue.length() >= 2) return
-
-    await this.executeAction(this.actionQueue.peek()!)
+  async dispatch(action: { type: E; payload?: any }) {
+    this.actionQueue.enqueue(action);
+    if (this.actionQueue.length() >= 2) return;
+    await this.executeAction(this.actionQueue.peek()!);
   }
 
-  private async executeAction(action: Action<E>) {
-    const state = this._stateMachineDescriptor.states[this._context.state]
-    if (!state) {
-      this.executeNextAction()
-      return
+  private async executeAction(action: { type: E; payload?: any }) {
+    const stateDef = this._stateMachineDescriptor.states[this._context.state];
+    if (!stateDef) {
+      this.executeNextAction();
+      return;
     }
-
-    const event = state![action.type]
+    const event = stateDef[action.type];
     if (!event) {
-      this.executeNextAction()
-      return
+      this.executeNextAction();
+      return;
     }
 
     try {
       if (this._stateMachineDescriptor.beforeTransition) {
-        await this._stateMachineDescriptor.beforeTransition(this._context, action, this)
+        await this._stateMachineDescriptor.beforeTransition(
+          this._context,
+          action,
+          this
+        );
       }
-      await event.action(this.context, action.payload, this)
-      this._context.state = event.target
+      // Executa a ação e captura o resultado
+      const result = await event.action(this._context, action.payload, this);
+      // Se o target for uma função, determina o estado dinamicamente
+      const nextState =
+        typeof event.target === "function"
+          ? (event.target as (result: any, context: C) => S)(
+              result,
+              this._context
+            )
+          : event.target;
+
+      this._context.state = nextState;
 
       if (this._stateMachineDescriptor.afterTransition) {
-        await this._stateMachineDescriptor.afterTransition(this._context, action, this)
+        await this._stateMachineDescriptor.afterTransition(
+          this._context,
+          action,
+          this
+        );
       }
     } catch (err) {
-      const { retry } = this._stateMachineDescriptor
-
-      let found = false
-
+      let handled = false;
       if (event.catch) {
-        for (const catchObject of event.catch) {
-          if (err instanceof catchObject.error) {
+        for (const catchBlock of event.catch) {
+          if (err instanceof catchBlock.error) {
+            handled = true;
             if (this._stateMachineDescriptor.beforeTransition) {
-              await this._stateMachineDescriptor.beforeTransition(this._context, action, this)
+              await this._stateMachineDescriptor.beforeTransition(
+                this._context,
+                action,
+                this
+              );
             }
-            await catchObject.action(this.context, action.payload, this)
-            this._context.state = catchObject.target
+            await catchBlock.action(this._context, action.payload, this);
+            this._context.state = catchBlock.target;
             if (this._stateMachineDescriptor.afterTransition) {
-              await this._stateMachineDescriptor.afterTransition(this._context, action, this)
+              await this._stateMachineDescriptor.afterTransition(
+                this._context,
+                action,
+                this
+              );
             }
-            found = true
-            break
+            break;
           }
         }
       }
-
-      if (!found && retry && err instanceof StateMachineException) {
-        retry.action(this._context, action, this)
+      if (!handled) {
+        const { retry } = this._stateMachineDescriptor;
+        if (retry && err instanceof StateMachineException) {
+          retry.action(this._context, action, this);
+        }
       }
     } finally {
-      this.executeNextAction()
+      this.executeNextAction();
     }
   }
 
   private executeNextAction() {
-    this.actionQueue.dequeue()
-    if (!this.actionQueue.isEmpty()) this.executeAction(this.actionQueue.peek()!)
+    this.actionQueue.dequeue();
+    if (!this.actionQueue.isEmpty())
+      this.executeAction(this.actionQueue.peek()!);
+  }
+
+  // Métodos para suspensão e retomada (Item 9)
+  public getStateSnapshot(): any {
+    return {
+      context: this._context,
+      queue: this.actionQueue.getElements(),
+    };
+  }
+
+  public loadStateSnapshot(snapshot: any): void {
+    this._context = snapshot.context;
+    this.actionQueue.setElements(snapshot.queue);
   }
 }
