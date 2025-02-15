@@ -46,7 +46,7 @@ enum FlightReservationState {
   EmailNotSent = "EmailNotSent", // Estado de compensação
   SeatReserved = "SeatReserved",
   PaymentFailed = "PaymentFailed", // Estado de compensação
-  ReservationConfirmed = "ReservationConfirmed", // !! Estado final
+  ReservationConfirmed = "ReservationConfirmed",
 }
 
 enum FlightReservationEvent {
@@ -119,7 +119,6 @@ sagaBuilder.addStep({
     },
   ],
 });
-
 
 // ─────────────────────────────────────────────
 // **Item 9 – Suspensão e Retomada (T3)**
