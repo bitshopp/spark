@@ -21,7 +21,7 @@ export type StateAction<C, M, R = any> = (
   context: C,
   payload: any,
   fsm: M
-) => Promise<R>;
+) => void;
 
 interface Compensation<
   C extends Context<S>,

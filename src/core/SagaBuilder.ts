@@ -10,7 +10,6 @@ export class SagaBuilder<C extends Context<S>, S extends string | number, E exte
       this.initialState = initialState;
     }
   
-    // Tornamos o método genérico com parâmetro R, default para void
     addStep<R = void>(step: SagaStep<C, S, E, R>): this {
       this.steps.push(step);
       return this;
