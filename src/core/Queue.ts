@@ -1,24 +1,24 @@
 export class Queue<E> {
-  private elements: E[] = []
+  private elements: E[] = [];
 
   public enqueue(element: E) {
-    this.elements.push(element)
+    this.elements.push(element);
   }
 
   public dequeue() {
-    return this.elements.shift()
+    return this.elements.shift();
   }
 
   public isEmpty() {
-    return this.elements.length == 0
+    return this.elements.length === 0;
   }
 
   public peek() {
-    return !this.isEmpty() ? this.elements[0] : undefined
+    return this.isEmpty() ? undefined : this.elements[0];
   }
 
   public length() {
-    return this.elements.length
+    return this.elements.length;
   }
 
   public getElements(): E[] {
@@ -27,5 +27,9 @@ export class Queue<E> {
 
   public setElements(elements: E[]): void {
     this.elements = [...elements];
+  }
+
+  public clear(): void {
+    this.elements = [];
   }
 }
