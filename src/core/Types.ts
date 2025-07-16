@@ -17,6 +17,13 @@ export type TransitionHook<C, A, M> = (
   fsm: M,
 ) => Promise<void>;
 
+export type RetryActionHook<C, A, M> = (
+  context: C,
+  action: A,
+  fsm: M,
+  error: StateMachineException,
+) => Promise<void>;
+
 export type StateAction<C, M, R = any> = (
   context: C,
   payload: any,

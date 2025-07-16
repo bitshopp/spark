@@ -113,7 +113,7 @@ export class FiniteStateMachine<
       if (!handled) {
         const { retry } = this._stateMachineDescriptor;
         if (retry && error instanceof StateMachineException) {
-          retry.action(this._context, action, this);
+          retry.action(this._context, action, this, error);
         }
       }
     } finally {
