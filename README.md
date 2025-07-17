@@ -17,11 +17,9 @@ Essa implementação é adequada para cenários onde é necessário coordenar pr
 /src
  ├── /core
  │     ├── FiniteStateMachine.ts      // Implementação principal da FSM
- │     ├── SagaBuilder.ts             // Builder para criar Sagas
+ │     ├── Queue.ts                   // Fila para gerenciamento das ações
  │     ├── SagaDescriptor.ts          // Descritor para Sagas
  │     ├── StateMachineDescriptor.ts  // Descritor (configuração) da FSM
- │     ├── StateMachineException.ts   // Exceção específica da FSM
- │     ├── Queue.ts                   // Fila para gerenciamento das ações
  │     └── Types.ts                   // Tipos comuns (Action, Context, Hooks, etc.)
  ├── SagaHierarchyExample.ts          // Exemplo de SAGA com hierarquia
  ├── SagaStepsExample.ts              // Exemplo de SAGA com o SagaBuilder
