@@ -30,8 +30,8 @@ const stateMachine = new FiniteStateMachine<ClassContext, EnumState, EnumEvent>(
       console.log(`afterTransition state: ${context.state}`)
     },
     retry: {
-      action: async (context, action) => {
-        console.log('retry')
+      action: async (context, action, fsm, error) => {
+        console.log('retry', error?.message)
       }
     },
     states: {

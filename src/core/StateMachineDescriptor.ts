@@ -1,6 +1,12 @@
 import { FiniteStateMachine } from './FiniteStateMachine';
 import { StateMachineException } from './StateMachineException';
-import { Action, Context, StateAction, TransitionHook } from './Types';
+import {
+  Action,
+  Context,
+  RetryActionHook,
+  StateAction,
+  TransitionHook,
+} from './Types';
 
 export type StateMachineDescriptor<
   C extends Context<S>,
@@ -11,7 +17,7 @@ export type StateMachineDescriptor<
   beforeTransition?: TransitionHook<C, Action<E>, FiniteStateMachine<C, S, E>>;
   afterTransition?: TransitionHook<C, Action<E>, FiniteStateMachine<C, S, E>>;
   retry?: {
-    action: TransitionHook<C, Action<E>, FiniteStateMachine<C, S, E>>;
+    action: RetryActionHook<C, Action<E>, FiniteStateMachine<C, S, E>>;
   };
   states: {
     [Key in S]?: {

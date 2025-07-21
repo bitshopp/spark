@@ -7,7 +7,7 @@ Esta é uma implementação de uma máquina de estados finita (FSM) em TypeScrip
 A FSM gerencia transições de estado a partir de um descritor que define:
 - **Estados e Transições**: Cada estado possui eventos que disparam ações e definem o próximo estado.
 - **Hooks de Transição**: Permite executar funções _beforeTransition_ e _afterTransition_ para adicionar lógicas customizadas antes e depois da transição.
-- **Tratamento de Exceções e Retry**: Possui mecanismos para capturar erros, executar ações de compensação (rollback) e realizar retry em casos específicos.
+- **Tratamento de Exceções e Retry**: Possui mecanismos para capturar erros, executar ações de compensação (rollback) e realizar `retry`. A lógica de `retry` tem acesso ao erro original, permitindo estratégias sofisticadas como backoff exponencial.
 
 Essa implementação é adequada para cenários onde é necessário coordenar processos distribuídos e implementar fluxos de compensação, como os encontrados em padrões SAGA.
 
@@ -17,21 +17,22 @@ Essa implementação é adequada para cenários onde é necessário coordenar pr
 /src
  ├── /core
  │     ├── FiniteStateMachine.ts      // Implementação principal da FSM
- │     ├── Queue.ts                   // Fila genérica para gerenciamento das ações
- │     ├── StateMachineException.ts   // Exceção específica da FSM
+ │     ├── Queue.ts                   // Fila para gerenciamento das ações
+ │     ├── SagaDescriptor.ts          // Descritor para Sagas
  │     ├── StateMachineDescriptor.ts  // Descritor (configuração) da FSM
  │     └── Types.ts                   // Tipos comuns (Action, Context, Hooks, etc.)
- └── SagasTest.ts                     // Testes unitários para a SAGA
- └── Test.ts                          // Testes unitários para a FSM
- └── index.ts                         // Ponto de entrada e re-exports dos módulos principais
+ ├── SagaHierarchyExample.ts          // Exemplo de SAGA com hierarquia
+ ├── SagaStepsExample.ts              // Exemplo de SAGA com o SagaBuilder
+ ├── RetryExample.ts                  // Exemplo do mecanismo de Retry
+ └── Teste.ts                         // Testes gerais
 ```
 
 ## Funcionalidades
 
 1. **Estados e Transições**: Permite definir estados e eventos para modelar processos e fluxos de trabalho.
 2. **Execução em Fila**: As ações são enfileiradas e processadas de forma sequencial, garantindo consistência.
-3. **Hooks e Retry**: Permite executar funções customizadas antes e depois das transições, com suporte a estratégias de retry.
-4. **Tratamento de Exceções e Compensação**: Possui mecanismos para capturar erros e executar fluxos de compensação (rollback), essenciais para a implementação de SAGA.
+3. **Hooks e Retry**: Permite executar funções customizadas antes e depois das transições. Inclui um robusto mecanismo de `retry` que é acionado por exceções, permitindo acesso ao erro original para implementar lógicas de retentativa com backoff, por exemplo.
+4. **Tratamento de Exceções e Compensação**: Possui mecanismos (`catch`) para capturar erros e executar fluxos de compensação (rollback), essenciais para a implementação de SAGA.
 
 ## Uso
 
@@ -206,6 +207,89 @@ Para cenários distribuídos, a FSM pode ser utilizada para implementar o padrã
 
    runOrderSaga();
    ```
+
+### Exemplo 3: Uso Avançado com Retentativas (Retry)
+
+A FSM suporta uma estratégia de `retry` global, ideal para lidar com falhas transitórias, como problemas de rede. A lógica de `retry` pode inspecionar o erro original e decidir se deve tentar novamente.
+
+1.  **Defina os Estados, Eventos e Contexto**:
+
+    ```typescript
+    enum RetryState {
+      Start = 'Start',
+      Success = 'Success',
+      Failed = 'Failed',
+    }
+
+    enum RetryEvent {
+      Process = 'Process',
+      GiveUp = 'GiveUp',
+    }
+
+    class RetryContext implements Context<RetryState> {
+      state: RetryState = RetryState.Start;
+      processAttempts = 0;
+      maxAttempts = 3;
+    }
+    ```
+
+2.  **Configure a FSM com uma Lógica de Retry**:
+
+    A ação de `retry` é acionada se uma `action` lançar uma `StateMachineException` e não houver um `catch` para tratá-la. A ação de `retry` recebe o erro e pode despachar a mesma ação novamente.
+
+    ```typescript
+    const retryDescriptor: StateMachineDescriptor<RetryContext, RetryState, RetryEvent> = {
+      initialState: RetryState.Start,
+      retry: {
+        action: async (context, action, fsm, error) => {
+          console.log(`[RETRY] Tentativa ${context.processAttempts} falhou. Erro: "${error.message}"`);
+
+          if (context.processAttempts < context.maxAttempts) {
+            await fsm.dispatch(action); // Tenta novamente
+          } else {
+            await fsm.dispatch({ type: RetryEvent.GiveUp }); // Desiste
+          }
+        },
+      },
+      states: {
+        [RetryState.Start]: {
+          [RetryEvent.Process]: {
+            target: RetryState.Success,
+            action: async (context) => {
+              context.processAttempts++;
+              console.log(`[ACTION] Executando... (tentativa ${context.processAttempts})`);
+
+              // Simula falha nas primeiras tentativas
+              if (context.processAttempts < context.maxAttempts) {
+                throw new StateMachineException(`Falha simulada na tentativa ${context.processAttempts}`);
+              }
+
+              console.log('[ACTION] Sucesso!');
+            },
+          },
+          [RetryEvent.GiveUp]: {
+            target: RetryState.Failed,
+            action: async () => { /* ... */ },
+          },
+        },
+      },
+    };
+    ```
+
+3.  **Execute o Fluxo**:
+
+    ```typescript
+    async function runRetryExample() {
+      const context = new RetryContext();
+      const fsm = new FiniteStateMachine(retryDescriptor, context);
+
+      await fsm.dispatch({ type: RetryEvent.Process });
+
+      console.log(`Estado final: ${fsm.context.state}`); // Deve ser Success
+    }
+
+    runRetryExample();
+    ```
 
 4. **Sub-máquinas de Estado para Fluxos Complexos**:
 
